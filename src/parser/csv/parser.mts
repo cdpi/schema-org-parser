@@ -1,5 +1,5 @@
 
-import { parse as parseCSV } from "csv-parse/sync";
+import { parse as csvParseSync } from "csv-parse/sync";
 
 interface PropertyRecord
 	{
@@ -22,14 +22,14 @@ interface Property
 	id:string;
 	label:string;
 	comment:string;
-	//subPropertyOf:string;
-	//equivalentProperty:string;
-	//subproperties:string;
-	//domainIncludes:string;
-	//rangeIncludes:string;
-	//inverseOf:string;
-	//supersedes:string;
-	//supersededBy:string;
+	subPropertyOf:Array<string>|null;
+	equivalentProperty:string|null;
+	subproperties:Array<string>|null;
+	domainIncludes:Array<string>|null;
+	rangeIncludes:Array<string>|null;
+	inverseOf:string|null;
+	supersedes:Array<string>|null;
+	supersededBy:string|null;
 	partOf:string|null;
 	}
 
@@ -48,94 +48,190 @@ interface TypeRecord
 	isPartOf:string;
 	}
 
-function url(what:string, release:string):string
+interface Type
 	{
-	return `https://github.com/schemaorg/schemaorg/raw/refs/heads/main/data/releases/${release}/schemaorg-all-https-${what}.csv`;
+	id:string;
+	label:string;
+	comment:string;
+	partOf:string|null;
 	}
 
-async function download(url:string):Promise<string>
-	{
-	let request = await fetch(url);
+const RELEASE_28_1 = "28.1";
 
-	return request.text();
-	}
-
-async function downloadProperties(release:string):Promise<string>
+class ParseError extends Error
 	{
-	return download(url("properties", release));
-	}
-
-async function downloadTypes(release:string):Promise<string>
-	{
-	return download(url("types", release));
-	}
-
-function parse(csv:string):Array<any>
-	{
-	return parseCSV(csv, {columns: true, skipEmptyLines: true});
-	}
-
-function isBlank(text:string):boolean
-	{
-	return (text.trim().length === 0);
-	}
-
-function nullIfBlank(column:string):string|null
-	{
-	return isBlank(column) ? null : column;
-	}
-
-function splitAndTrim(column:string):Array<string>
-	{
-	return column.split(",").map(text => text.trim());
-	}
-
-function notBlank(column:string):void
-	{
-	if (isBlank(column))
+	constructor(message:string)
 		{
-		throw new Error("blank");
+		super(message);
 		}
 	}
 
-function checkProperty(record:PropertyRecord):PropertyRecord
+class Parser
 	{
-	notBlank(record.id);
+	readonly release:string;
 
-	notBlank(record.label);
+	constructor(release:string = RELEASE_28_1)
+		{
+		this.release = release;
+		}
 
-	notBlank(record.comment);
+	public async parseProperties():Promise<any>
+		{
+		let csv = await this.download(this.url("properties"));
 
-	return record;
+		let records = csvParseSync(csv, {columns: true, skipEmptyLines: true});
+
+		return records.map((record:PropertyRecord) => this.checkProperty(record))
+			.map((record:PropertyRecord) => this.parseProperty(record));
+		}
+
+	public async parseTypes():Promise<any>
+		{
+		let csv = await this.download(this.url("types"));
+
+		let records = csvParseSync(csv, {columns: true, skipEmptyLines: true});
+
+		return records.map((record:TypeRecord) => this.checkType(record))
+			.map((record:TypeRecord) => this.parseType(record));
+		}
+
+	public async parse():Promise<any>
+		{
+		let properties = await this.parseProperties();
+		let types = await this.parseTypes();
+
+		return {properties, types};
+		}
+
+	private url(what:string):string
+		{
+		return `https://github.com/schemaorg/schemaorg/raw/refs/heads/main/data/releases/${this.release}/schemaorg-all-https-${what}.csv`;
+		}
+
+	private	async download(url:string):Promise<string>
+		{
+		let request = await fetch(url);
+
+		return request.text();
+		}
+
+	private isBlank(text:string):boolean
+		{
+		return (text.trim().length === 0);
+		}
+
+	private nullIfBlank(column:string):string|null
+		{
+		return this.isBlank(column) ? null : column;
+		}
+
+	private splitAndTrim(column:string):Array<string>
+		{
+		return column.split(",").map(text => text.trim());
+		}
+
+	private nullOrArray(column:string):Array<string>|null
+		{
+		if (this.isBlank(column))
+			{
+			return null;
+			}
+
+		return this.splitAndTrim(column);
+		}
+
+	private notBlank(column:string, columnName:string):void
+		{
+		if (this.isBlank(column))
+			{
+			throw new ParseError(`Column '${columnName}' is blank`);
+			}
+		}
+
+	private notContainsComma(column:string, columnName:string):void
+		{
+		if (column.includes(","))
+			{
+			throw new ParseError(`Column '${columnName}' contains comma`);
+			}
+		}
+
+	private checkProperty(record:PropertyRecord):PropertyRecord
+		{
+		this.notBlank(record.id, "id");
+		this.notContainsComma(record.id, "id");
+
+		this.notBlank(record.label, "label");
+		this.notContainsComma(record.label, "label");
+
+		this.notBlank(record.comment, "comment");
+
+		this.notContainsComma(record.equivalentProperty, "equivalentProperty");
+
+		this.notContainsComma(record.inverseOf, "inverseOf");
+
+		this.notContainsComma(record.supersededBy, "supersededBy");
+
+		this.notContainsComma(record.isPartOf, "isPartOf");
+
+		return record;
+		}
+
+	private parseProperty(record:PropertyRecord):Property
+		{
+		//@ts-ignore
+		let property:Property = {};
+
+		property.id = record.id;
+		property.label = record.label;
+		property.comment = record.comment;
+		property.subPropertyOf = this.nullOrArray(record.subPropertyOf);
+		property.equivalentProperty = this.nullIfBlank(record.equivalentProperty);
+		property.subproperties = this.nullOrArray(record.subproperties);
+		property.domainIncludes = this.nullOrArray(record.domainIncludes);
+		property.rangeIncludes = this.nullOrArray(record.rangeIncludes);
+		property.inverseOf = this.nullIfBlank(record.inverseOf);
+		property.supersedes = this.nullOrArray(record.supersedes);
+		property.supersededBy = this.nullIfBlank(record.supersededBy);
+		property.partOf = this.nullIfBlank(record.isPartOf);
+
+		return property;
+		}
+
+	private checkType(record:TypeRecord):TypeRecord
+		{
+		this.notBlank(record.id, "id");
+		this.notContainsComma(record.id, "id");
+
+		this.notBlank(record.label, "label");
+		this.notContainsComma(record.label, "label");
+
+		this.notBlank(record.comment, "comment");
+
+		this.notContainsComma(record.isPartOf, "isPartOf");
+
+		return record;
+		}
+
+	private parseType(record:TypeRecord):Type
+		{
+		//@ts-ignore
+		let type:Type = {};
+
+		type.id = record.id;
+		type.label = record.label;
+		type.comment = record.comment;
+
+		type.partOf = this.nullIfBlank(record.isPartOf);
+
+		return type;
+		}
 	}
 
-function parseProperty(record:PropertyRecord):Property
+export
 	{
-	//@ts-ignore
-	let property:Property = {};
-
-	property.id = record.id;
-	property.label = record.label;
-	property.comment = record.comment;
-	property.partOf = nullIfBlank(record.isPartOf);
-
-	return property;
-	}
-
-/*
-async function downloadAndParseProperties(release:string):Array<Property>
-	{
-	return parse(await downloadProperties(release)).map(checkProperty).map(parseProperty);
-	}
-*/
-
-let release = "28.1";
-
-let csv = await downloadProperties(release);
-
-let properties = parse(csv).map(checkProperty).map(parseProperty);
-
-console.log(properties[0]);
-
-//let types = parse(await downloadTypes(release));
-//console.log(types[0]);
+	RELEASE_28_1,
+	Property,
+	ParseError,
+	Parser
+	};
