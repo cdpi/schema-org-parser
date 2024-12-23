@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+	  "lib": ["DOM", "ES2015", "ES2024"],
+	  "target": "ESNext",
+	  "module": "NodeNext",
+	  "strict": true,
+	  "skipLibCheck": true,
+	  "rootDir": "src",
+	  "outDir": "dist"
+	}
+  }
+  
