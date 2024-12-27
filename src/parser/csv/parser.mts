@@ -1,187 +1,139 @@
 
 import { parse as csvParseSync } from "csv-parse/sync";
+import { Property, Type } from "../../schema-org.mjs";
 
-interface PropertyRecord
+const PROPERTY_HEADERS = ["id", "label", "comment", "subPropertyOf", "equivalentProperty", "subproperties", "domainIncludes", "rangeIncludes", "inverseOf", "supersedes", "supersededBy", "isPartOf"];
+
+const TYPE_HEADERS = ["id", "label", "comment", "subTypeOf", "enumerationtype", "equivalentClass", "properties", "subTypes", "supersedes", "supersededBy", "isPartOf"];
+
+interface TypeOrPropertyRecord
 	{
 	id:string;
 	label:string;
 	comment:string;
+	supersedes:string;
+	supersededBy:string;
+	isPartOf:string;
+	}
+
+interface PropertyRecord extends TypeOrPropertyRecord
+	{
 	subPropertyOf:string;
 	equivalentProperty:string;
 	subproperties:string;
 	domainIncludes:string;
 	rangeIncludes:string;
 	inverseOf:string;
-	supersedes:string;
-	supersededBy:string;
-	isPartOf:string;
 	}
 
-interface Property
+interface TypeRecord extends TypeOrPropertyRecord
 	{
-	id:string;
-	label:string;
-	comment:string;
-	subPropertyOf:Array<string>|null;
-	equivalentProperty:string|null;
-	subproperties:Array<string>|null;
-	domainIncludes:Array<string>|null;
-	rangeIncludes:Array<string>|null;
-	inverseOf:string|null;
-	supersedes:Array<string>|null;
-	supersededBy:string|null;
-	partOf:string|null;
-	}
-
-interface TypeRecord
-	{
-	id:string;
-	label:string;
-	comment:string;
 	subTypeOf:string;
 	enumerationtype:string;
 	equivalentClass:string;
 	properties:string;
 	subTypes:string;
-	supersedes:string;
-	supersededBy:string;
-	isPartOf:string;
 	}
 
-interface Type
+interface IParser<T extends TypeOrPropertyRecord>
 	{
-	id:string;
-	label:string;
-	comment:string;
-	partOf:string|null;
+	parse(csv:string):Array<T>;
+
+	/*
+	public async parse():Promise<Schema>
+		{
+		let schema = {} as Schema;
+
+		schema.properties = await this.downloadAndParseProperties();
+		schema.types = await this.parseTypes();
+
+		console.debug(schema.properties.size);
+		console.debug(schema.types.size);
+
+		return schema;
+		}
+	*/
 	}
 
-const RELEASE_28_1 = "28.1";
-
-class ParseError extends Error
+interface IPropertyParser
 	{
-	constructor(message:string)
-		{
-		super(message);
-		}
+	downloadProperties(release:string):Promise<string>;
+
+	parseProperty(record:PropertyRecord):Property;
 	}
 
-class Parser
+interface ITypeParser
 	{
-	readonly release:string;
+	downloadTypes(release:string):Promise<string>;
 
-	constructor(release:string = RELEASE_28_1)
+	parseType(record:TypeRecord):Type;
+	}
+
+abstract class AbstractParser<T extends TypeOrPropertyRecord> implements IParser<T>
+	{
+	parse(csv:string):Array<T>
 		{
-		this.release = release;
+		return csvParseSync(csv, {columns: true, skipEmptyLines: true}) as Array<T>;
 		}
 
-	public async parseProperties():Promise<any>
+	protected asMap(array:Array<T>):Map<string, T>
 		{
-		let csv = await this.download(this.url("properties"));
+		let map = new Map<string, T>();
 
-		let records = csvParseSync(csv, {columns: true, skipEmptyLines: true});
+		array.forEach(item =>
+			{
+			map.set(item.id, item);
+			});
 
-		return records.map((record:PropertyRecord) => this.checkProperty(record))
-			.map((record:PropertyRecord) => this.parseProperty(record));
+		return map;
 		}
 
-	public async parseTypes():Promise<any>
+	protected async download(release:string, what:string):Promise<string>
 		{
-		let csv = await this.download(this.url("types"));
+		let url = `https://github.com/schemaorg/schemaorg/raw/refs/heads/main/data/releases/${release}/schemaorg-all-https-${what}.csv`;
 
-		let records = csvParseSync(csv, {columns: true, skipEmptyLines: true});
-
-		return records.map((record:TypeRecord) => this.checkType(record))
-			.map((record:TypeRecord) => this.parseType(record));
-		}
-
-	public async parse():Promise<any>
-		{
-		let properties = await this.parseProperties();
-		let types = await this.parseTypes();
-
-		return {properties, types};
-		}
-
-	private url(what:string):string
-		{
-		return `https://github.com/schemaorg/schemaorg/raw/refs/heads/main/data/releases/${this.release}/schemaorg-all-https-${what}.csv`;
-		}
-
-	private	async download(url:string):Promise<string>
-		{
 		let request = await fetch(url);
 
 		return request.text();
 		}
+	}
 
-	private isBlank(text:string):boolean
+class PropertyParser extends AbstractParser<PropertyRecord> implements IPropertyParser
+	{
+	constructor()
 		{
-		return (text.trim().length === 0);
+		super();
 		}
 
-	private nullIfBlank(column:string):string|null
+	async downloadProperties(release:string):Promise<string>
 		{
-		return this.isBlank(column) ? null : column;
+		return this.download(release, "properties");
 		}
 
-	private splitAndTrim(column:string):Array<string>
+	/*
+	public parseProperties(csv:string):Map<string, Property>
 		{
-		return column.split(",").map(text => text.trim());
+		let records = csvParseSync(csv, {columns: true, skipEmptyLines: true}) as Array<PropertyRecord>;
+
+		let properties = records.map((record:PropertyRecord) => this.parseProperty(record));
+
+		return this.asMap(properties);
 		}
-
-	private nullOrArray(column:string):Array<string>|null
+	*/
+	/*
+	public async downloadAndParseProperties(release:string = RELEASE_28_1):Promise<Map<string, Property>>
 		{
-		if (this.isBlank(column))
-			{
-			return null;
-			}
+		let csv = await this.download(release, "properties");
 
-		return this.splitAndTrim(column);
+		return this.parseProperties(csv);
 		}
+	*/
 
-	private notBlank(column:string, columnName:string):void
+	parseProperty(record:PropertyRecord):Property
 		{
-		if (this.isBlank(column))
-			{
-			throw new ParseError(`Column '${columnName}' is blank`);
-			}
-		}
+		let property = {} as Property;
 
-	private notContainsComma(column:string, columnName:string):void
-		{
-		if (column.includes(","))
-			{
-			throw new ParseError(`Column '${columnName}' contains comma`);
-			}
-		}
-
-	private checkProperty(record:PropertyRecord):PropertyRecord
-		{
-		this.notBlank(record.id, "id");
-		this.notContainsComma(record.id, "id");
-
-		this.notBlank(record.label, "label");
-		this.notContainsComma(record.label, "label");
-
-		this.notBlank(record.comment, "comment");
-
-		this.notContainsComma(record.equivalentProperty, "equivalentProperty");
-
-		this.notContainsComma(record.inverseOf, "inverseOf");
-
-		this.notContainsComma(record.supersededBy, "supersededBy");
-
-		this.notContainsComma(record.isPartOf, "isPartOf");
-
-		return record;
-		}
-
-	private parseProperty(record:PropertyRecord):Property
-		{
-		//@ts-ignore
-		let property:Property = {};
-
+		/*
 		property.id = record.id;
 		property.label = record.label;
 		property.comment = record.comment;
@@ -194,35 +146,54 @@ class Parser
 		property.supersedes = this.nullOrArray(record.supersedes);
 		property.supersededBy = this.nullIfBlank(record.supersededBy);
 		property.partOf = this.nullIfBlank(record.isPartOf);
+		*/
 
 		return property;
 		}
+	}
 
-	private checkType(record:TypeRecord):TypeRecord
+class TypeParser extends AbstractParser<TypeRecord> implements ITypeParser
+	{
+	constructor()
 		{
-		this.notBlank(record.id, "id");
-		this.notContainsComma(record.id, "id");
-
-		this.notBlank(record.label, "label");
-		this.notContainsComma(record.label, "label");
-
-		this.notBlank(record.comment, "comment");
-
-		this.notContainsComma(record.isPartOf, "isPartOf");
-
-		return record;
+		super();
 		}
 
-	private parseType(record:TypeRecord):Type
+	async downloadTypes(release:string):Promise<string>
 		{
-		//@ts-ignore
-		let type:Type = {};
+		return this.download(release, "types");
+		}
 
+	/*
+	public async parseTypes(release:string = RELEASE_28_1):Promise<Map<string, Type>>
+		{
+		let csv = await this.download(release, "types");
+
+		let records = csvParseSync(csv, {columns: true, skipEmptyLines: true});
+
+		let types = records.map((record:TypeRecord) => this.parseType(record));
+
+		return this.asMap(types);
+		}
+	*/
+
+	parseType(record:TypeRecord):Type
+		{
+		let type = {} as Type;
+
+		/*
 		type.id = record.id;
 		type.label = record.label;
 		type.comment = record.comment;
-
+		type.subTypeOf = this.nullOrArray(record.subTypeOf);
+		type.enumerationtype = this.nullIfBlank(record.enumerationtype);
+		type.equivalentClass = this.nullOrArray(record.equivalentClass);
+		type.properties = this.nullOrArray(record.properties);
+		type.subTypes = this.nullOrArray(record.subTypes);
+		type.supersedes = this.nullOrArray(record.supersedes);
+		type.supersededBy = this.nullIfBlank(record.supersededBy);
 		type.partOf = this.nullIfBlank(record.isPartOf);
+		*/
 
 		return type;
 		}
@@ -230,8 +201,14 @@ class Parser
 
 export
 	{
-	RELEASE_28_1,
-	Property,
-	ParseError,
-	Parser
+	PROPERTY_HEADERS,
+	TYPE_HEADERS,
+	TypeOrPropertyRecord,
+	PropertyRecord,
+	TypeRecord,
+	IParser,
+	IPropertyParser,
+	ITypeParser,
+	PropertyParser,
+	TypeParser
 	};
