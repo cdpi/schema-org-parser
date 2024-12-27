@@ -1,1 +1,3 @@
-# schema-org-parser
+# Parser Schema.org
+
+## CSV only !!!
