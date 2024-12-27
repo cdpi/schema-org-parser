@@ -1,6 +1,7 @@
 
 import { parse as csvParseSync } from "csv-parse/sync";
-import { TypeOrProperty, Property, Type } from "../../schema-org.mjs";
+import { RELEASE_28_1, TypeOrProperty, Property, Type } from "../../schema-org.mjs";
+import { Statistics, statistics } from "./statistics.mjs";
 
 const PROPERTY_HEADERS = ["id", "label", "comment", "subPropertyOf", "equivalentProperty", "subproperties", "domainIncludes", "rangeIncludes", "inverseOf", "supersedes", "supersededBy", "isPartOf"];
 
@@ -40,29 +41,6 @@ interface TypeRecord extends TypeOrPropertyRecord
 interface IParser<T extends TypeOrPropertyRecord>
 	{
 	parse(csv:string):Array<T>;
-
-	/*
-	public async downloadAndParseProperties(release:string = RELEASE_28_1):Promise<Map<string, Property>>
-		{
-		let csv = await this.download(release, "properties");
-
-		return this.parseProperties(csv);
-		}
-	*/
-	/*
-	public async parse():Promise<Schema>
-		{
-		let schema = {} as Schema;
-
-		schema.properties = await this.downloadAndParseProperties();
-		schema.types = await this.parseTypes();
-
-		console.debug(schema.properties.size);
-		console.debug(schema.types.size);
-
-		return schema;
-		}
-	*/
 	}
 
 interface IPropertyParser
@@ -168,6 +146,22 @@ class PropertyParser extends AbstractParser<PropertyRecord, Property> implements
 
 		return property;
 		}
+
+	async csvStatistics(release:string):Promise<Map<string, Statistics>>
+		{
+		let csv = await this.downloadProperties(release);
+
+		let records = this.parse(csv);
+
+		let map = new Map<string, Statistics>();
+
+		PROPERTY_HEADERS.forEach(header =>
+			{
+			map.set(header, statistics(records.map(record => record[header])));
+			});
+
+		return map;
+		}
 	}
 
 class TypeParser extends AbstractParser<TypeRecord, Type> implements ITypeParser
@@ -184,29 +178,86 @@ class TypeParser extends AbstractParser<TypeRecord, Type> implements ITypeParser
 
 	parseTypes(csv:string):Map<string, Type>
 		{
-		return this.asMap(this.parse(csv).map(this.parseType));
+		return this.asMap(this.parse(csv).map(record => this.parseType(record)));
 		}
 
 	parseType(record:TypeRecord):Type
 		{
 		let type = {} as Type;
 
-		/*
 		type.id = record.id;
 		type.label = record.label;
 		type.comment = record.comment;
-		type.subTypeOf = this.nullOrArray(record.subTypeOf);
-		type.enumerationtype = this.nullIfBlank(record.enumerationtype);
-		type.equivalentClass = this.nullOrArray(record.equivalentClass);
-		type.properties = this.nullOrArray(record.properties);
-		type.subTypes = this.nullOrArray(record.subTypes);
-		type.supersedes = this.nullOrArray(record.supersedes);
-		type.supersededBy = this.nullIfBlank(record.supersededBy);
-		type.partOf = this.nullIfBlank(record.isPartOf);
-		*/
+		type.subTypeOf = this.arrayOrNull(record.subTypeOf);
+		type.enumerationtype = this.stringOrNull(record.enumerationtype);
+		type.equivalentClass = this.arrayOrNull(record.equivalentClass);
+		type.properties = this.arrayOrNull(record.properties);
+		type.subTypes = this.arrayOrNull(record.subTypes);
+		type.supersedes = this.arrayOrNull(record.supersedes);
+		type.supersededBy = this.stringOrNull(record.supersededBy);
+		type.partOf = this.stringOrNull(record.isPartOf);
 
 		return type;
 		}
+
+	async csvStatistics(release:string):Promise<Map<string, Statistics>>
+		{
+		let csv = await this.downloadTypes(release);
+
+		let records = this.parse(csv);
+
+		let map = new Map<string, Statistics>();
+
+		TYPE_HEADERS.forEach(header =>
+			{
+			map.set(header, statistics(records.map(record => record[header])));
+			});
+
+		return map;
+		}
+	}
+
+class CSVParser
+	{
+	readonly release:string;
+
+	constructor(release:string = RELEASE_28_1)
+		{
+		this.release = release;
+		}
+
+	async downloadAndParseProperties():Promise<Map<string, Property>>
+		{
+		let parser = new PropertyParser();
+
+		let csv = await parser.downloadProperties(this.release);
+
+		return parser.parseProperties(csv);
+		}
+
+	async downloadAndParseTypes():Promise<Map<string, Type>>
+		{
+		let parser = new TypeParser();
+
+		let csv = await parser.downloadTypes(this.release);
+
+		return parser.parseTypes(csv);
+		}
+
+	/*
+	public async parse():Promise<Schema>
+		{
+		let schema = {} as Schema;
+
+		schema.properties = await this.downloadAndParseProperties();
+		schema.types = await this.parseTypes();
+
+		console.debug(schema.properties.size);
+		console.debug(schema.types.size);
+
+		return schema;
+		}
+	*/
 	}
 
 export
@@ -220,5 +271,6 @@ export
 	IPropertyParser,
 	ITypeParser,
 	PropertyParser,
-	TypeParser
+	TypeParser,
+	CSVParser
 	};

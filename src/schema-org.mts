@@ -1,7 +1,4 @@
 
-import { PROPERTY_HEADERS, PropertyParser } from "./parser/csv/parser.mjs";
-import { Statistics, statistics } from "./statistics.mjs";
-
 const RELEASE_28_1 = "28.1";
 
 interface TypeOrProperty
@@ -33,11 +30,13 @@ interface Type extends TypeOrProperty
 	subTypes:Array<string>|null;
 	}
 
+/*
 interface Schema
 	{
 	properties:Map<string, Property>;
 	types:Map<string, Type>;
 	}
+*/
 
 class SchemaOrg
 	{
@@ -45,6 +44,7 @@ class SchemaOrg
 		{
 		}
 
+	/*
 	static async propertiesToJSON():Promise<string>
 		{
 		let parser = new PropertyParser();
@@ -57,24 +57,7 @@ class SchemaOrg
 
 		return JSON.stringify(values, null, 2);
 		}
-
-	static async csvStatistics():Promise<void>
-		{
-		let parser = new PropertyParser();
-
-		let csv = await parser.downloadProperties(RELEASE_28_1);
-
-		let records = parser.parse(csv);
-
-		let map = new Map<string, Statistics>();
-
-		PROPERTY_HEADERS.forEach(header =>
-			{
-			map.set(header, statistics(records.map(record => record[header])));
-			});
-
-		console.log(map);
-		}
+	*/
 	}
 
 export
@@ -83,6 +66,6 @@ export
 	TypeOrProperty,
 	Property,
 	Type,
-	Schema,
+	//Schema,
 	SchemaOrg
 	};
