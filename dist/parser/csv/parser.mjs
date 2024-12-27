@@ -12,6 +12,18 @@ class AbstractParser {
         });
         return map;
     }
+    stringOrNull(column) {
+        if (column.trim().length === 0) {
+            return null;
+        }
+        return column;
+    }
+    arrayOrNull(column) {
+        if (column.trim().length === 0) {
+            return null;
+        }
+        return column.split(",").map(text => text.trim());
+    }
     async download(release, what) {
         let url = `https://github.com/schemaorg/schemaorg/raw/refs/heads/main/data/releases/${release}/schemaorg-all-https-${what}.csv`;
         let request = await fetch(url);
@@ -25,40 +37,23 @@ class PropertyParser extends AbstractParser {
     async downloadProperties(release) {
         return this.download(release, "properties");
     }
-    /*
-    public parseProperties(csv:string):Map<string, Property>
-        {
-        let records = csvParseSync(csv, {columns: true, skipEmptyLines: true}) as Array<PropertyRecord>;
-
-        let properties = records.map((record:PropertyRecord) => this.parseProperty(record));
-
-        return this.asMap(properties);
-        }
-    */
-    /*
-    public async downloadAndParseProperties(release:string = RELEASE_28_1):Promise<Map<string, Property>>
-        {
-        let csv = await this.download(release, "properties");
-
-        return this.parseProperties(csv);
-        }
-    */
+    parseProperties(csv) {
+        return this.asMap(this.parse(csv).map(record => this.parseProperty(record)));
+    }
     parseProperty(record) {
         let property = {};
-        /*
         property.id = record.id;
         property.label = record.label;
         property.comment = record.comment;
-        property.subPropertyOf = this.nullOrArray(record.subPropertyOf);
-        property.equivalentProperty = this.nullIfBlank(record.equivalentProperty);
-        property.subproperties = this.nullOrArray(record.subproperties);
-        property.domainIncludes = this.nullOrArray(record.domainIncludes);
-        property.rangeIncludes = this.nullOrArray(record.rangeIncludes);
-        property.inverseOf = this.nullIfBlank(record.inverseOf);
-        property.supersedes = this.nullOrArray(record.supersedes);
-        property.supersededBy = this.nullIfBlank(record.supersededBy);
-        property.partOf = this.nullIfBlank(record.isPartOf);
-        */
+        property.subPropertyOf = this.arrayOrNull(record.subPropertyOf);
+        property.equivalentProperty = this.stringOrNull(record.equivalentProperty);
+        property.subproperties = this.arrayOrNull(record.subproperties);
+        property.domainIncludes = this.arrayOrNull(record.domainIncludes);
+        property.rangeIncludes = this.arrayOrNull(record.rangeIncludes);
+        property.inverseOf = this.stringOrNull(record.inverseOf);
+        property.supersedes = this.arrayOrNull(record.supersedes);
+        property.supersededBy = this.stringOrNull(record.supersededBy);
+        property.partOf = this.stringOrNull(record.isPartOf);
         return property;
     }
 }
@@ -69,18 +64,9 @@ class TypeParser extends AbstractParser {
     async downloadTypes(release) {
         return this.download(release, "types");
     }
-    /*
-    public async parseTypes(release:string = RELEASE_28_1):Promise<Map<string, Type>>
-        {
-        let csv = await this.download(release, "types");
-
-        let records = csvParseSync(csv, {columns: true, skipEmptyLines: true});
-
-        let types = records.map((record:TypeRecord) => this.parseType(record));
-
-        return this.asMap(types);
-        }
-    */
+    parseTypes(csv) {
+        return this.asMap(this.parse(csv).map(this.parseType));
+    }
     parseType(record) {
         let type = {};
         /*
