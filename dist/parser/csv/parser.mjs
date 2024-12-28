@@ -103,6 +103,34 @@ class TypeParser extends AbstractParser {
         return map;
     }
 }
+class EnumerationParser {
+    parseEnumerations(types) {
+        let enumerationTypeIDs = new Set();
+        let enumerationMembers = new Map();
+        // Rechercher toutes les énumerations et membres d'une énumeration
+        types.forEach((type, id) => {
+            if (type.enumerationtype !== null) {
+                enumerationTypeIDs.add(type.enumerationtype);
+                enumerationMembers.set(id, type);
+                types.delete(id);
+            }
+        });
+        let enumerations = new Map();
+        // Transformer le type en énumeration
+        enumerationTypeIDs.forEach(enumerationTypeID => {
+            let enumeration = types.get(enumerationTypeID);
+            enumeration.enumerationMembers = new Array();
+            enumerations.set(enumerationTypeID, enumeration);
+            types.delete(enumerationTypeID);
+        });
+        // Ajouter les membres de l'énumeration
+        enumerationMembers.forEach((enumerationMember, id) => {
+            let enumerationID = enumerationMember.enumerationtype;
+            enumerations.get(enumerationID)?.enumerationMembers.push(enumerationMember);
+        });
+        return enumerations;
+    }
+}
 class CSVParser {
     release;
     constructor(release = RELEASE_28_1) {
@@ -118,5 +146,16 @@ class CSVParser {
         let csv = await parser.downloadTypes(this.release);
         return parser.parseTypes(csv);
     }
+    async parse() {
+        let schema = {};
+        let properties = await this.downloadAndParseProperties();
+        let types = await this.downloadAndParseTypes();
+        let enumerationParser = new EnumerationParser();
+        let enumerations = enumerationParser.parseEnumerations(types);
+        schema.properties = properties;
+        schema.types = types;
+        schema.enumerations = enumerations;
+        return schema;
+    }
 }
-export { PROPERTY_HEADERS, TYPE_HEADERS, PropertyParser, TypeParser, CSVParser };
+export { PROPERTY_HEADERS, TYPE_HEADERS, PropertyParser, TypeParser, EnumerationParser, CSVParser };

@@ -1,6 +1,6 @@
 
 import { parse as csvParseSync } from "csv-parse/sync";
-import { RELEASE_28_1, TypeOrProperty, Property, Type } from "../../schema-org.mjs";
+import { RELEASE_28_1, TypeOrProperty, Property, Type, Enumeration, Schema } from "../../schema-org.mjs";
 import { Statistics, statistics } from "./statistics.mjs";
 
 const PROPERTY_HEADERS = ["id", "label", "comment", "subPropertyOf", "equivalentProperty", "subproperties", "domainIncludes", "rangeIncludes", "inverseOf", "supersedes", "supersededBy", "isPartOf"];
@@ -59,6 +59,11 @@ interface ITypeParser
 	parseTypes(csv:string):Map<string, Type>;
 
 	parseType(record:TypeRecord):Type;
+	}
+
+interface IEnumerationParser
+	{
+	parseEnumerations(types:Map<string, Type>):Map<string, Enumeration>;
 	}
 
 abstract class AbstractParser<T extends TypeOrPropertyRecord, U extends TypeOrProperty> implements IParser<T>
@@ -217,6 +222,52 @@ class TypeParser extends AbstractParser<TypeRecord, Type> implements ITypeParser
 		}
 	}
 
+class EnumerationParser implements IEnumerationParser
+	{
+	parseEnumerations(types:Map<string, Type>):Map<string, Enumeration>
+		{
+		let enumerationTypeIDs = new Set<string>();
+		let enumerationMembers = new Map<string, Type>();
+
+		// Rechercher toutes les énumerations et membres d'une énumeration
+		types.forEach((type, id) =>
+			{
+			if (type.enumerationtype !== null)
+				{
+				enumerationTypeIDs.add(type.enumerationtype);
+
+				enumerationMembers.set(id, type);
+
+				types.delete(id);
+				}
+			});
+
+		let enumerations = new Map<string, Enumeration>();
+
+		// Transformer le type en énumeration
+		enumerationTypeIDs.forEach(enumerationTypeID =>
+			{
+			let enumeration = types.get(enumerationTypeID) as Enumeration;
+
+			enumeration.enumerationMembers = new Array<Type>();
+
+			enumerations.set(enumerationTypeID, enumeration);
+
+			types.delete(enumerationTypeID);
+			});
+
+		// Ajouter les membres de l'énumeration
+		enumerationMembers.forEach((enumerationMember, id) =>
+			{
+			let enumerationID = enumerationMember.enumerationtype as string;
+
+			enumerations.get(enumerationID)?.enumerationMembers.push(enumerationMember);
+			});
+
+		return enumerations;
+		}
+	}
+
 class CSVParser
 	{
 	readonly release:string;
@@ -244,20 +295,23 @@ class CSVParser
 		return parser.parseTypes(csv);
 		}
 
-	/*
-	public async parse():Promise<Schema>
+	async parse():Promise<Schema>
 		{
 		let schema = {} as Schema;
 
-		schema.properties = await this.downloadAndParseProperties();
-		schema.types = await this.parseTypes();
+		let properties = await this.downloadAndParseProperties();
+		let types = await this.downloadAndParseTypes();
 
-		console.debug(schema.properties.size);
-		console.debug(schema.types.size);
+		let enumerationParser = new EnumerationParser();
+
+		let enumerations = enumerationParser.parseEnumerations(types);
+
+		schema.properties = properties;
+		schema.types = types;
+		schema.enumerations = enumerations;
 
 		return schema;
 		}
-	*/
 	}
 
 export
@@ -272,5 +326,6 @@ export
 	ITypeParser,
 	PropertyParser,
 	TypeParser,
+	EnumerationParser,
 	CSVParser
 	};

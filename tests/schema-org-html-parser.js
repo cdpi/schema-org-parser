@@ -1,5 +1,22 @@
-import { Thing } from "../schema-org.mjs";
-// HTMLParser
+//GENERATED
+
+class Thing extends Map {
+    constructor() {
+        super();
+    }
+    dump() {
+        this.forEach((value, property) => {
+            if (value instanceof Map) {
+                value.dump();
+            }
+            else {
+                console.log(`${property}: ${value}`);
+            }
+        });
+    }
+}
+
+
 class HTMLParser {
     static topLevelSelector = "[itemscope][itemtype]:not([itemscope][itemtype] *)";
     static propertySelector = "[itemprop]:not([itemprop] *)";
@@ -49,8 +66,8 @@ class HTMLParser {
         });
     }
 }
-// HTMLParser
-// Render
+
+
 function render(thing) {
     const cell = (text) => `<td>${text}</td>`;
     const row = (cells) => `<tr>${cells.map(cell).join("")}</tr>`;
@@ -66,5 +83,3 @@ function render(thing) {
     });
     return table(values);
 }
-// Render
-export { HTMLParser, render };

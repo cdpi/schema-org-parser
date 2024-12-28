@@ -30,13 +30,44 @@ interface Type extends TypeOrProperty
 	subTypes:Array<string>|null;
 	}
 
-/*
+interface Enumeration extends Type
+	{
+	enumerationMembers:Array<Type>;
+	}
+
 interface Schema
 	{
 	properties:Map<string, Property>;
 	types:Map<string, Type>;
+	enumerations:Map<string, Enumeration>;
 	}
-*/
+
+// Thing
+
+class Thing extends Map<string, any>
+	{
+	constructor()
+		{
+		super();
+		}
+
+	dump():void
+		{
+		this.forEach((value, property) =>
+			{
+			if (value instanceof Map)
+				{
+				(value as Thing).dump();
+				}
+			else
+				{
+				console.log(`${property}: ${value}`);
+				}
+			});
+		}
+	}
+
+// Thing
 
 class SchemaOrg
 	{
@@ -66,6 +97,8 @@ export
 	TypeOrProperty,
 	Property,
 	Type,
-	//Schema,
+	Enumeration,
+	Schema,
+	Thing,
 	SchemaOrg
 	};
