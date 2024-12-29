@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+	<title>BG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+svg
+	{
+	background-color: beige;
+	width: 720px;
+	height: 720px;
+	}
+</style>
+</head>
+<body>
+
+<svg id="bg" viewBox="0 0 720 720"></svg>
+
+<script>
+
+let bg = document.querySelector("#bg");
+
+/*
+for (let i = 6; i > 0; i--)
+	{
+	let c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+
+	c.setAttribute("cx", 60 * i);
+	c.setAttribute("cy", "360");
+	c.setAttribute("r", 60 * i);
+	c.setAttribute("fill", `rgb(20, 100, ${30 * i})`);
+
+	bg.appendChild(c);
+	}
+*/
+
+function abcd()
+	{
+	let r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+	let c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+	}
+
+</script>
+
+<!--
+<clipPath id="cut-off-bottom">
+	<rect x="0" y="0" width="200" height="100" />
+  </clipPath>
+</defs>
+
+<circle cx="100" cy="100" r="100" clip-path="url(#cut-off-bottom)" />
+-->
+
+</body>
+</html>

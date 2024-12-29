@@ -1,11 +1,4 @@
 
-class Builder
-	{
-	constructor()
-		{
-		}
-	}
-
 class Validator
 	{
 	constructor()
@@ -15,6 +8,5 @@ class Validator
 
 export
 	{
-	Builder,
 	Validator
 	};

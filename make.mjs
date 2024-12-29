@@ -5,18 +5,33 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 /**
  * @param {string} path
- * @param {string} separator
  * @returns {string}
  */
-function extract(path, separator)
+function extract(path)
 	{
-	return readFileSync(path, "utf-8").split(separator)[1];
+	return readFileSync(path, "utf-8").split("// CLASS")[1];
 	}
 
-let thing = extract("dist/schema-org.mjs", "// Thing");
-let parser = extract("dist/parser/parser.mjs", "// HTMLParser");
-let render = extract("dist/parser/parser.mjs", "// Render");
+let root = "dist/parser/html/";
 
-let code = `//GENERATED\n${thing}\n${parser}\n${render}`;
+let files =
+	[
+	"Microdata.mjs",
+	"AbstractParser.mjs",
+	"AtParser.mjs",
+	"TypeParser.mjs",
+	"PropertyParser.mjs",
+	"ThingParser.mjs",
+	"Parser.mjs"
+	];
 
-writeFileSync("tests/schema-org-html-parser.js", code);
+let code = ["//GENERATED"];
+
+code.push(extract("dist/SchemaOrg.mjs"));
+
+for (let file of files)
+	{
+	code.push(extract(`${root}${file}`));
+	}
+
+writeFileSync("tests/DEV-schema-org-html-parser.js", code.join("\n"));

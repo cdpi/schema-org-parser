@@ -1,5 +1,5 @@
 import { parse as csvParseSync } from "csv-parse/sync";
-import { RELEASE_28_1 } from "../../schema-org.mjs";
+import { RELEASE_28_1 } from "../../SchemaOrg.mjs";
 import { statistics } from "./statistics.mjs";
 const PROPERTY_HEADERS = ["id", "label", "comment", "subPropertyOf", "equivalentProperty", "subproperties", "domainIncludes", "rangeIncludes", "inverseOf", "supersedes", "supersededBy", "isPartOf"];
 const TYPE_HEADERS = ["id", "label", "comment", "subTypeOf", "enumerationtype", "equivalentClass", "properties", "subTypes", "supersedes", "supersededBy", "isPartOf"];

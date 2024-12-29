@@ -42,7 +42,7 @@ interface Schema
 	enumerations:Map<string, Enumeration>;
 	}
 
-// Thing
+// CLASS
 
 class Thing extends Map<string, any>
 	{
@@ -67,7 +67,7 @@ class Thing extends Map<string, any>
 		}
 	}
 
-// Thing
+// CLASS
 
 class SchemaOrg
 	{
@@ -95,10 +95,10 @@ export
 	{
 	RELEASE_28_1,
 	TypeOrProperty,
-	Property,
-	Type,
 	Enumeration,
-	Schema,
+	Type,
+	Property,
 	Thing,
+	Schema,
 	SchemaOrg
 	};

@@ -1,5 +1,5 @@
 const RELEASE_28_1 = "28.1";
-// Thing
+// CLASS
 class Thing extends Map {
     constructor() {
         super();
@@ -15,7 +15,7 @@ class Thing extends Map {
         });
     }
 }
-// Thing
+// CLASS
 class SchemaOrg {
     constructor() {
     }

@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+	  "lib": ["DOM", "ES2024"],
+	  "target": "ESNext",
+	  "module": "NodeNext",
+	  "strict": true,
+	  "outFile": "tests/dev-schema-org-html-parser.js"
+	},
+	"include": ["src/SchemaOrg.mts", "src/parser/html/*.mts"]
+  }
+  

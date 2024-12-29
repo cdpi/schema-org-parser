@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+	<title>Tests</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<script src="DEV-schema-org-html-parser.js"></script>
+
+<script>
+
+async function test()
+	{
+	let response = await fetch("person.html");
+
+	let html = await response.text();
+
+	let document = new DOMParser().parseFromString(html, "text/html");
+
+	let div = document.querySelector("#person-name");
+
+	let things = new Parser().parse(div);
+
+	console.log(things);
+	}
+
+test();
+
+</script>
+
+</body>
+</html>
