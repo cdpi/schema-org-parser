@@ -1,8 +1,7 @@
 import { parse as csvParseSync } from "csv-parse/sync";
-import { RELEASE_28_1 } from "../../SchemaOrg.mjs";
+import { RELEASE_28_1 } from "../../schema-org.mjs";
+import { TYPE_HEADERS, PROPERTY_HEADERS } from "./types.mjs";
 import { statistics } from "./statistics.mjs";
-const PROPERTY_HEADERS = ["id", "label", "comment", "subPropertyOf", "equivalentProperty", "subproperties", "domainIncludes", "rangeIncludes", "inverseOf", "supersedes", "supersededBy", "isPartOf"];
-const TYPE_HEADERS = ["id", "label", "comment", "subTypeOf", "enumerationtype", "equivalentClass", "properties", "subTypes", "supersedes", "supersededBy", "isPartOf"];
 class AbstractParser {
     parse(csv) {
         return csvParseSync(csv, { columns: true, skipEmptyLines: true });
@@ -30,42 +29,6 @@ class AbstractParser {
         let url = `https://github.com/schemaorg/schemaorg/raw/refs/heads/main/data/releases/${release}/schemaorg-all-https-${what}.csv`;
         let request = await fetch(url);
         return request.text();
-    }
-}
-class PropertyParser extends AbstractParser {
-    constructor() {
-        super();
-    }
-    async downloadProperties(release) {
-        return this.download(release, "properties");
-    }
-    parseProperties(csv) {
-        return this.asMap(this.parse(csv).map(record => this.parseProperty(record)));
-    }
-    parseProperty(record) {
-        let property = {};
-        property.id = record.id;
-        property.label = record.label;
-        property.comment = record.comment;
-        property.subPropertyOf = this.arrayOrNull(record.subPropertyOf);
-        property.equivalentProperty = this.stringOrNull(record.equivalentProperty);
-        property.subproperties = this.arrayOrNull(record.subproperties);
-        property.domainIncludes = this.arrayOrNull(record.domainIncludes);
-        property.rangeIncludes = this.arrayOrNull(record.rangeIncludes);
-        property.inverseOf = this.stringOrNull(record.inverseOf);
-        property.supersedes = this.arrayOrNull(record.supersedes);
-        property.supersededBy = this.stringOrNull(record.supersededBy);
-        property.partOf = this.stringOrNull(record.isPartOf);
-        return property;
-    }
-    async csvStatistics(release) {
-        let csv = await this.downloadProperties(release);
-        let records = this.parse(csv);
-        let map = new Map();
-        PROPERTY_HEADERS.forEach(header => {
-            map.set(header, statistics(records.map(record => record[header])));
-        });
-        return map;
     }
 }
 class TypeParser extends AbstractParser {
@@ -131,6 +94,42 @@ class EnumerationParser {
         return enumerations;
     }
 }
+class PropertyParser extends AbstractParser {
+    constructor() {
+        super();
+    }
+    async downloadProperties(release) {
+        return this.download(release, "properties");
+    }
+    parseProperties(csv) {
+        return this.asMap(this.parse(csv).map(record => this.parseProperty(record)));
+    }
+    parseProperty(record) {
+        let property = {};
+        property.id = record.id;
+        property.label = record.label;
+        property.comment = record.comment;
+        property.subPropertyOf = this.arrayOrNull(record.subPropertyOf);
+        property.equivalentProperty = this.stringOrNull(record.equivalentProperty);
+        property.subproperties = this.arrayOrNull(record.subproperties);
+        property.domainIncludes = this.arrayOrNull(record.domainIncludes);
+        property.rangeIncludes = this.arrayOrNull(record.rangeIncludes);
+        property.inverseOf = this.stringOrNull(record.inverseOf);
+        property.supersedes = this.arrayOrNull(record.supersedes);
+        property.supersededBy = this.stringOrNull(record.supersededBy);
+        property.partOf = this.stringOrNull(record.isPartOf);
+        return property;
+    }
+    async csvStatistics(release) {
+        let csv = await this.downloadProperties(release);
+        let records = this.parse(csv);
+        let map = new Map();
+        PROPERTY_HEADERS.forEach(header => {
+            map.set(header, statistics(records.map(record => record[header])));
+        });
+        return map;
+    }
+}
 class CSVParser {
     release;
     constructor(release = RELEASE_28_1) {
@@ -158,4 +157,4 @@ class CSVParser {
         return schema;
     }
 }
-export { PROPERTY_HEADERS, TYPE_HEADERS, PropertyParser, TypeParser, EnumerationParser, CSVParser };
+export { TypeParser, EnumerationParser, PropertyParser, CSVParser };

@@ -1,5 +1,7 @@
 
-import { Property, Schema, Type } from "./SchemaOrg.mjs";
+import { Type, Property } from "./parser/csv/types.mjs";
+import { TypeParser, PropertyParser, Schema, CSVParser } from "./parser/csv/parser.mjs";
+import { RELEASE_28_1 } from "./schema-org.mjs";
 
 class HierarchyBuilder
 	{
@@ -66,7 +68,36 @@ class HierarchyBuilder
 		}
 	}
 
+function csvStatistics(release:string):void
+	{
+	new TypeParser().csvStatistics(RELEASE_28_1).then(typesStatistics =>
+		{
+		console.log("CSV TYPES");
+		console.log(typesStatistics);
+		});
+
+	new PropertyParser().csvStatistics(RELEASE_28_1).then(propertiesStatistics =>
+		{
+		console.log("CSV PROPERTIES");
+		console.log(propertiesStatistics);
+		});
+	}
+
+function csvCount(release:string):void
+	{
+	let parser = new CSVParser(release);
+
+	parser.parse().then(schema =>
+		{
+		console.log(`${schema.types.size} types`);
+		console.log(`${schema.enumerations.size} énumerations`);
+		console.log(`${schema.properties.size} propriétés`);
+		});
+	}
+
 export
 	{
-	HierarchyBuilder
+	HierarchyBuilder,
+	csvStatistics,
+	csvCount
 	};

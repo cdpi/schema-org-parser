@@ -1,55 +1,12 @@
 
 import { parse as csvParseSync } from "csv-parse/sync";
-import { RELEASE_28_1, TypeOrProperty, Property, Type, Enumeration, Schema } from "../../SchemaOrg.mjs";
+import { RELEASE_28_1 } from "../../schema-org.mjs";
+import { TYPE_HEADERS, PROPERTY_HEADERS, TypeOrPropertyRecord, TypeRecord, PropertyRecord, TypeOrProperty, Type, Enumeration, Property } from "./types.mjs";
 import { Statistics, statistics } from "./statistics.mjs";
-
-const PROPERTY_HEADERS = ["id", "label", "comment", "subPropertyOf", "equivalentProperty", "subproperties", "domainIncludes", "rangeIncludes", "inverseOf", "supersedes", "supersededBy", "isPartOf"];
-
-const TYPE_HEADERS = ["id", "label", "comment", "subTypeOf", "enumerationtype", "equivalentClass", "properties", "subTypes", "supersedes", "supersededBy", "isPartOf"];
-
-interface TypeOrPropertyRecord
-	{
-	id:string;
-	label:string;
-	comment:string;
-	supersedes:string;
-	supersededBy:string;
-	isPartOf:string;
-
-	[name:string]:string;
-	}
-
-interface PropertyRecord extends TypeOrPropertyRecord
-	{
-	subPropertyOf:string;
-	equivalentProperty:string;
-	subproperties:string;
-	domainIncludes:string;
-	rangeIncludes:string;
-	inverseOf:string;
-	}
-
-interface TypeRecord extends TypeOrPropertyRecord
-	{
-	subTypeOf:string;
-	enumerationtype:string;
-	equivalentClass:string;
-	properties:string;
-	subTypes:string;
-	}
 
 interface IParser<T extends TypeOrPropertyRecord>
 	{
 	parse(csv:string):Array<T>;
-	}
-
-interface IPropertyParser
-	{
-	downloadProperties(release:string):Promise<string>;
-
-	parseProperties(csv:string):Map<string, Property>;
-
-	parseProperty(record:PropertyRecord):Property;
 	}
 
 interface ITypeParser
@@ -64,6 +21,15 @@ interface ITypeParser
 interface IEnumerationParser
 	{
 	parseEnumerations(types:Map<string, Type>):Map<string, Enumeration>;
+	}
+
+interface IPropertyParser
+	{
+	downloadProperties(release:string):Promise<string>;
+
+	parseProperties(csv:string):Map<string, Property>;
+
+	parseProperty(record:PropertyRecord):Property;
 	}
 
 abstract class AbstractParser<T extends TypeOrPropertyRecord, U extends TypeOrProperty> implements IParser<T>
@@ -112,60 +78,6 @@ abstract class AbstractParser<T extends TypeOrPropertyRecord, U extends TypeOrPr
 		let request = await fetch(url);
 
 		return request.text();
-		}
-	}
-
-class PropertyParser extends AbstractParser<PropertyRecord, Property> implements IPropertyParser
-	{
-	constructor()
-		{
-		super();
-		}
-
-	async downloadProperties(release:string):Promise<string>
-		{
-		return this.download(release, "properties");
-		}
-
-	parseProperties(csv:string):Map<string, Property>
-		{
-		return this.asMap(this.parse(csv).map(record => this.parseProperty(record)));
-		}
-
-	parseProperty(record:PropertyRecord):Property
-		{
-		let property = {} as Property;
-
-		property.id = record.id;
-		property.label = record.label;
-		property.comment = record.comment;
-		property.subPropertyOf = this.arrayOrNull(record.subPropertyOf);
-		property.equivalentProperty = this.stringOrNull(record.equivalentProperty);
-		property.subproperties = this.arrayOrNull(record.subproperties);
-		property.domainIncludes = this.arrayOrNull(record.domainIncludes);
-		property.rangeIncludes = this.arrayOrNull(record.rangeIncludes);
-		property.inverseOf = this.stringOrNull(record.inverseOf);
-		property.supersedes = this.arrayOrNull(record.supersedes);
-		property.supersededBy = this.stringOrNull(record.supersededBy);
-		property.partOf = this.stringOrNull(record.isPartOf);
-
-		return property;
-		}
-
-	async csvStatistics(release:string):Promise<Map<string, Statistics>>
-		{
-		let csv = await this.downloadProperties(release);
-
-		let records = this.parse(csv);
-
-		let map = new Map<string, Statistics>();
-
-		PROPERTY_HEADERS.forEach(header =>
-			{
-			map.set(header, statistics(records.map(record => record[header])));
-			});
-
-		return map;
 		}
 	}
 
@@ -268,6 +180,67 @@ class EnumerationParser implements IEnumerationParser
 		}
 	}
 
+class PropertyParser extends AbstractParser<PropertyRecord, Property> implements IPropertyParser
+	{
+	constructor()
+		{
+		super();
+		}
+
+	async downloadProperties(release:string):Promise<string>
+		{
+		return this.download(release, "properties");
+		}
+
+	parseProperties(csv:string):Map<string, Property>
+		{
+		return this.asMap(this.parse(csv).map(record => this.parseProperty(record)));
+		}
+
+	parseProperty(record:PropertyRecord):Property
+		{
+		let property = {} as Property;
+
+		property.id = record.id;
+		property.label = record.label;
+		property.comment = record.comment;
+		property.subPropertyOf = this.arrayOrNull(record.subPropertyOf);
+		property.equivalentProperty = this.stringOrNull(record.equivalentProperty);
+		property.subproperties = this.arrayOrNull(record.subproperties);
+		property.domainIncludes = this.arrayOrNull(record.domainIncludes);
+		property.rangeIncludes = this.arrayOrNull(record.rangeIncludes);
+		property.inverseOf = this.stringOrNull(record.inverseOf);
+		property.supersedes = this.arrayOrNull(record.supersedes);
+		property.supersededBy = this.stringOrNull(record.supersededBy);
+		property.partOf = this.stringOrNull(record.isPartOf);
+
+		return property;
+		}
+
+	async csvStatistics(release:string):Promise<Map<string, Statistics>>
+		{
+		let csv = await this.downloadProperties(release);
+
+		let records = this.parse(csv);
+
+		let map = new Map<string, Statistics>();
+
+		PROPERTY_HEADERS.forEach(header =>
+			{
+			map.set(header, statistics(records.map(record => record[header])));
+			});
+
+		return map;
+		}
+	}
+
+interface Schema
+	{
+	types:Map<string, Type>;
+	enumerations:Map<string, Enumeration>;
+	properties:Map<string, Property>;
+	}
+
 class CSVParser
 	{
 	readonly release:string;
@@ -316,16 +289,15 @@ class CSVParser
 
 export
 	{
-	PROPERTY_HEADERS,
-	TYPE_HEADERS,
-	TypeOrPropertyRecord,
-	PropertyRecord,
-	TypeRecord,
 	IParser,
-	IPropertyParser,
 	ITypeParser,
-	PropertyParser,
+	IEnumerationParser,
+	IPropertyParser,
+
 	TypeParser,
 	EnumerationParser,
+	PropertyParser,
+
+	Schema,
 	CSVParser
 	};

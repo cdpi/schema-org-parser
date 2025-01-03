@@ -78,6 +78,7 @@ Upcoming shows
 </div>
 -->
 
+<!--
 <div itemscope itemtype="https://schema.org/SoftwareApplication">
 	<div>
 		<h1>
@@ -109,6 +110,47 @@ things.forEach(thing =>
 
 	document.body.insertAdjacentHTML("beforeend", html);
 	});
+
+</script>
+-->
+
+<style>
+
+span
+	{
+	background-color: aquamarine;
+	}
+
+span.name
+	{
+	border-left: 3px solid crimson;
+	}
+
+span.property
+	{
+	border-left: 3px solid silver;
+	}
+
+</style>
+
+<script type="module">
+
+import { Thing } from "../dist/schema-org.mjs";
+
+let thing = new Thing();
+
+thing.set("sdd", "sdsdsds");
+thing.set("sdsdd", ["sdsdsds", "sdsddssdsddsd"]);
+
+let thing2 = new Thing();
+
+thing2.set("ssddd", "sdsdsds");
+
+thing.set("sdsd", thing2);
+
+console.log(thing);
+
+document.body.insertAdjacentHTML("beforeend", thing.render());
 
 </script>
 

@@ -1,8 +1,5 @@
 
-import { Thing } from "../SchemaOrg.mjs";
-
-// Render
-
+/*
 function render(thing:Thing):string
 	{
 	const cell = (text:string) => `<td>${text}</td>`;
@@ -15,9 +12,9 @@ function render(thing:Thing):string
 
 	thing.forEach((value, key) =>
 		{
-		if (value instanceof Map)
+		if (value instanceof Thing)
 			{
-			values.push(new Array(key, render(value as Thing)));
+			values.push(new Array(key, render(value)));
 			}
 		else
 			{
@@ -34,3 +31,4 @@ export
 	{
 	render
 	};
+*/

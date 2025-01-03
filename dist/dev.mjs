@@ -1,38 +1,13 @@
+import { HierarchyBuilder } from "./util.mjs";
+import { RELEASE_28_1 } from "./schema-org.mjs";
 import { CSVParser } from "./parser/csv/parser.mjs";
-import { HierarchyBuilder } from "./HierarchyBuilder.mjs";
-function csv() {
-    let parser = new CSVParser();
-    parser.parse().then(schema => {
-        console.log(`${schema.properties.size} propriétés`);
-        console.log(`${schema.types.size} types`);
-        console.log(`${schema.enumerations.size} énumerations`);
-        /*
-        schema.enumerations.forEach(enumeration =>
-            {
-            console.log(enumeration.label);
-            enumeration.enumerationMembers.forEach(enumerationMember =>
-                {
-                console.log(" - " + enumerationMember.label);
-                });
-            });
-        */
-    });
-}
+//csvStatistics(RELEASE_28_1);
+//csvCount(RELEASE_28_1);
 function build() {
-    let parser = new CSVParser();
+    let parser = new CSVParser(RELEASE_28_1);
     parser.parse().then(schema => {
         let builder = new HierarchyBuilder(schema);
         let types = builder.build();
-        /*
-        PoliceStation
-            Thing
-            Place
-            CivicStructure
-            Organization
-            LocalBusiness
-            EmergencyService
-        */
-        //console.log(types["https://schema.org/PoliceStation"]);
         console.log(JSON.stringify(types, null, 2));
     });
 }
